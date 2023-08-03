@@ -78,42 +78,53 @@ INpause = False
 
 # 根据button读入进行state跳转
 
-max_step = 5
-def doTask2(pan_current, tilt_current):
+def doTask2():
     img = sensor.snapshot()
-    global position
-    ul = (0,0)
-    ur = (100,0)
-    dr = (100,-100)
-    dl = (0,-100)
-    con_rect = [ul,ur,dr,dl]
+    position = NowPosition.UL
+    cx = 90;
+    cy = 90;
+    
+    ul_x = 103.5;
+    ul_y = 102.5;
+    
+    ur_x = 76.5;
+    ur_y = 102.5;
+
+    dr_x = 76.5;
+    dr_y = 77.5;
+
+    dl_x = 103.5;
+    dl_y = 77.5;
+
+    dx = (dl_x-cx)/100;
+    dy = (dl_y-cy)/100;
+
     if position == NowPosition.UL:
-        pan_error = con_rect[1][0]-img.width()/2
-        tilt_error = con_rect[1][1]-img.height()/2
-        ratio = pan_error/tilt_error
-        pan_current, tilt_current, pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
-        if abs(pan_output) + abs(tilt_output) < total_error:
-            position = NowPosition.UR
+        for i in range(1,100):
+            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, cx+i*dx, cy+i*dy)
+            time.sleep(0.05)
+        position = NowPosition.UR
     elif position == NowPosition.UR:
-        pan_error = min(max_step, con_rect[2][0]-img.width()/2)
-        tilt_error = min(max_step, con_rect[2][1]-img.height()/2)
-        pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
-        if abs(pan_output) + abs(tilt_output) < total_error:
-            position = NowPosition.DR
+        for i in range(1,100):
+            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, ur_x-2*i*dx, ur_y)
+            time.sleep(0.05)
+        position = NowPosition.DR
     elif position == NowPosition.DR:
-        pan_error = min(max_step, con_rect[3][0]-img.width()/2)
-        tilt_error = con_rect[3][1]-img.height()/2
-        pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
-        if abs(pan_output) + abs(tilt_output) < total_error:
-            position = NowPosition.DL
+        for i in range(1,100):
+            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, dr_x, dr_y-2*i*dy)
+            time.sleep(0.05)
+        position = NowPosition.DL
     elif position == NowPosition.DL:
-        pan_error = con_rect[0][0]-img.width()/2
-        tilt_error = con_rect[0][1]-img.height()/2
-        pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
-        if abs(pan_output) + abs(tilt_output) < total_error:
-            position = NowPosition.UL
-            Alarm()
-            state = MachineState.RESET
+        for i in range(1,100):
+            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, dl_x+2*i*dx, dl_y)
+            time.sleep(0.05)
+
+    for i in range(1,100):
+        pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, dl_x, dl_y+2*i*dy)
+        time.sleep(0.05)
+    position = NowPosition.Finish
+    Alarm()
+    state = MachineState.RESET
     return pan_current, tilt_current
 
 def button_read():
