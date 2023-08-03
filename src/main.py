@@ -41,6 +41,9 @@ red_threshold = (13, 49, 18, 61, 6, 47)
 green_threshold = (90, 150, 30, 100, 30, 100)
 black_threshold = (0, 180, 0, 30, 0, 30)
 
+# define global const
+total_error = 1
+area = (30,6,100,109)
 clock = time.clock()  # Tracks FPS.
 
 # define state
@@ -75,6 +78,41 @@ INpause = False
 
 # 根据button读入进行state跳转
 
+def doTask2():
+    img = sensor.snapshot()
+    position = NowPosition.UL
+    ul = (0,0)
+    ur = (100,0)
+    dr = (100,-100)
+    dl = (0,-100)
+    con_rect = [ul,ur,dr,dl]
+    if position == NowPosition.UL:
+        pan_error = con_rect[0][0]-img.width()/2
+        tilt_error = con_rect[0][1]-img.height()/2 
+        pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
+        if abs(pan_output) + abs(tilt_output) < total_error:
+            position = NowPosition.UR
+    elif position == NowPosition.UR: 
+        pan_error = con_rect[1][0]-img.width()/2
+        tilt_error = con_rect[1][1]-img.height()/2 
+        pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
+        if abs(pan_output) + abs(tilt_output) < total_error:
+            position = NowPosition.DR
+    elif position == NowPosition.DR: 
+        pan_error = con_rect[2][0]-img.width()/2
+        tilt_error = con_rect[2][1]-img.height()/2 
+        pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
+        if abs(pan_output) + abs(tilt_output) < total_error:
+            position = NowPosition.DL
+    elif position == NowPosition.DL: 
+        pan_error = con_rect[3][0]-img.width()/2
+        tilt_error = con_rect[3][1]-img.height()/2 
+        pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
+        if abs(pan_output) + abs(tilt_output) < total_error:
+            position = NowPosition.UL
+            Alarm()
+            state = MachineState.RESET
+    return
 
 def button_read():
     # 在这里插入按键的读入程序
@@ -156,60 +194,57 @@ def servoturn(pan_error, tilt_error, pan, tilt):
 def doTraceBlackLine():
     img = sensor.snapshot()  # Take a picture and return the image.
     # Find the UpLeft angle of the black rectangle
-    black_rect = img.find_rects([black_threshold])
+    black_rect = img.find_rects(threshold=10000, roi=area)
     if black_rect:
         black_rect = find_max(black_rect)
         # 找到黑色矩形，设定标志为True
         # 在图像上绘制矩形及中心点
         img.draw_rectangle(black_rect)
-        img.draw_cross(black_rect.cx(), black_rect.cy())
-        match state_Trace:
-            case TraceState.RESET:
-                state_Trace = TraceState.FindAngle
-            case TraceState.FindAngle:
-                pan_error = black_rect.x()-img.width()/2
-                tilt_error = black_rect.y()-img.height()/2
+        if state_Trace == TraceState.RESET:
+            state_Trace = TraceState.FindAngle
+        elif state_Trace == TraceState.FindAngle:
+            pan_error = black_rect.x()-img.width()/2
+            tilt_error = black_rect.y()-img.height()/2
                 
-                pan_current, tilt_current = servoturn(pan_error, tilt_error, pan_current, tilt_current)
-                if abs(pan_error) + abs(tilt_error) < 0.1:
-                    state_Trace = TraceState.Travel
-                    position = NowPosition.UL
-            case TraceState.Travel:
-                match position:
-                    case NowPosition.UL:
-                        # 目标点的距离
-                        pan_error = black_rect.x()-img.width()/2
-                        tilt_error = black_rect.y()-img.height()/2
+            pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
+            if abs(pan_output) + abs(tilt_output) < total_error:
+                state_Trace = TraceState.Travel
+                position = NowPosition.UL
+        elif state_Trace == TraceState.Travel:
+            if position == NowPosition.UL:
+                # 目标点的距离
+                pan_error = black_rect.corners()[1][0]-img.width()/2
+                tilt_error = black_rect.corners()[1][1]-img.height()/2
                         
-                        pan_current, tilt_current = servoturn(pan_error, tilt_error, pan_current, tilt_current)
-                        if abs(pan_error) + abs(tilt_error) < 0.1:
-                            position = NowPosition.UR
-                    case NowPosition.UR:
-                        pan_error = black_rect.x()-img.width()/2
-                        tilt_error = black_rect.y()-img.height()/2
+                pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
+                if abs(pan_output) + abs(tilt_output) < total_error:
+                    position = NowPosition.UR
+            elif position == NowPosition.UR:
+                pan_error = black_rect.corners()[2][0]-img.width()/2
+                tilt_error = black_rect.corners()[2][1]-img.height()/2
                         
-                        pan_current, tilt_current = servoturn(pan_error, tilt_error, pan_current, tilt_current)
-                        if abs(pan_error) + abs(tilt_error) < 0.1:
-                            position = NowPosition.DR                
-                    case NowPosition.DR:
-                        # 目标点的距离
-                        pan_error = black_rect.x()-img.width()/2
-                        tilt_error = black_rect.y()-img.height()/2
+                pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
+                if abs(pan_output) + abs(tilt_output) < total_error:
+                    position = NowPosition.DR                
+            elif position == NowPosition.DR:
+                # 目标点的距离
+                pan_error = black_rect.corners()[3][0]-img.width()/2
+                tilt_error = black_rect.corners()[3][1]-img.height()/2
                         
-                        pan_current, tilt_current = servoturn(pan_error, tilt_error, pan_current, tilt_current)
-                        if abs(pan_error) + abs(tilt_error) < 0.1:
-                            position = NowPosition.DL
-                    case NowPosition.DL:
-                        # 目标点的距离
-                        pan_error = black_rect.x()-img.width()/2
-                        tilt_error = black_rect.y()-img.height()/2
+                pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
+                if abs(pan_output) + abs(tilt_output) < total_error:
+                    position = NowPosition.DL
+            elif position == NowPosition.DL:
+                # 目标点的距离
+                pan_error = black_rect.corners()[0][0]-img.width()/2
+                tilt_error = black_rect.corners()[0][1]-img.height()/2
                         
-                        pan_current, tilt_current = servoturn(pan_error, tilt_error, pan_current, tilt_current)
-                        if abs(pan_error) + abs(tilt_error) < 0.1:
-                            position = NowPosition.Finish
-            case TraceState.Finish:
-                Alarm()
-                state = MachineState.RESET
+                pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
+                if abs(pan_output) + abs(tilt_output) < total_error:
+                    position = NowPosition.Finish
+        elif state_Trace == TraceState.Finish:
+            Alarm()
+            state = MachineState.RESET
     return
 
 
@@ -245,13 +280,12 @@ while True:
     state, INpause = button_read()  # change if button signal comes
 
 # 这里开始进行状态跳转执行
-    match state:
-        case MachineState.RESET:
-            print("Reseting")
-            pan_current, tilt_current = doReset()
-        case MachineState.TRACING:
-            print("Tracing")
-            doTraceBlackLine()
-        case MachineState.TRACKING:
-            print("Tracking")
-            pan_current, tilt_current = doTrackGreenPoint(pan_current, tilt_current)
+    if state == MachineState.RESET:
+        print("Reseting")
+        pan_current, tilt_current = doReset()
+    elif state == MachineState.TRACING:
+        print("Tracing")
+        doTraceBlackLine()
+    elif state == MachineState.TRACKING:
+        print("Tracking")
+        pan_current, tilt_current = doTrackGreenPoint(pan_current, tilt_current)
