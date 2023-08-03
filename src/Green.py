@@ -15,7 +15,6 @@ i2c = I2C(sda=Pin('P5'), scl=Pin('P4'))
 pin1 = Pin('P1', Pin.IN, Pin.PULL_UP)
 pin2 = Pin('P2', Pin.IN, Pin.PULL_UP)
 pin3 = Pin('P3', Pin.IN, Pin.PULL_UP)
-pin6 = Pin('P6', Pin.IN, Pin.PULL_UP)
 servo = Servos(i2c, address=0x40, freq=50,
                min_us=500, max_us=2500, degrees=180)
 
@@ -56,20 +55,11 @@ class TraceState(Enum):
     FindAngle = auto()
     Travel = auto()
     Finish = auto()
-
-class NowPosition(Enum):
-    UL = auto()
-    UR = auto()
-    DR = auto()
-    DL = auto()
-    Finish = auto()
     
 # initial stare
 state = MachineState.RESET
 ## state of Travel rect
 state_Trace = TraceState.RESET
-### state of position
-position = NowPosition.UL
 # 默认非暂停
 INpause = False
 
@@ -82,7 +72,6 @@ def button_read():
     key1 = pin1.value()
     key2 = pin2.value()
     key3 = pin3.value()
-    key4 = pin6.value()
 
     # 等待一小段时间，例如20毫秒，以进行按键消抖
     utime.sleep_ms(20)
@@ -91,20 +80,17 @@ def button_read():
     key1_debounced = pin1.value()
     key2_debounced = pin2.value()
     key3_debounced = pin3.value()
-    key4_debounced = pin6.value()
 
     # 检测按键状态是否稳定，如果稳定则进行状态切换
     if key1 == key1_debounced == 1:
         new_state = MachineState.RESET
     elif key2 == key2_debounced == 1:
-        new_state = MachineState.TRACING
-    elif key3 == key3_debounced == 1:
         new_state = MachineState.TRACKING
     else:
         new_state = MachineState.TRACKING  # 默认状态
 
-    # 检测第四个按键，并进行暂停/继续操作
-    if key4 == key4_debounced == 1:
+    # 检测第三个按键，并进行暂停/继续操作
+    if key3 == key3_debounced == 1:
         pause = ~pause
 
     return new_state, pause
@@ -121,12 +107,16 @@ def find_max(blobs):
 
 
 def doReset():
+    # 初始化
     servoturn(0, 0, 90, 90)
     return
 
 def servoturn(pan_error, tilt_error, pan_current, tilt_current):
+    
     pan_output = pan_pid.get_pid(pan_error, 1)/2
     tilt_output = tilt_pid.get_pid(tilt_error, 1)
+    
+    # 水平目标
     pan_target = pan_current + pan_output
     if pan_target < 75 or pan_target > 105:
         if pan_target < 75:
@@ -136,6 +126,7 @@ def servoturn(pan_error, tilt_error, pan_current, tilt_current):
     servo.position(0, pan_target)
     pan_current = servo.get_angle()
     
+    # 垂直目标
     tilt_target = tilt_current + tilt_output
     if tilt_target < 75 or tilt_target > 105:
         if tilt_target < 75:
@@ -147,72 +138,12 @@ def servoturn(pan_error, tilt_error, pan_current, tilt_current):
     return pan_current, tilt_current
 
 
-def doTraceBlackLine():
-    img = sensor.snapshot()  # Take a picture and return the image.
-    # Find the UpLeft angle of the black rectangle
-    black_rect = img.find_rects([black_threshold])
-    if black_rect:
-        black_rect = find_max(black_rect)
-        # 找到黑色矩形，设定标志为True
-        # 在图像上绘制矩形及中心点
-        img.draw_rectangle(black_rect)
-        img.draw_cross(black_rect.cx(), black_rect.cy())
-        match state_Trace:
-            case TraceState.RESET:
-                state_Trace = TraceState.FindAngle
-            case TraceState.FindAngle:
-                pan_error = black_rect.x()-img.width()/2
-                tilt_error = black_rect.y()-img.height()/2
-                
-                pan_current, tilt_current = servoturn(pan_error, tilt_error, pan_current, tilt_current)
-                if abs(pan_error) + abs(tilt_error) < 0.1:
-                    state_Trace = TraceState.Travel
-                    position = NowPosition.UL
-            case TraceState.Travel:
-                match position:
-                    case NowPosition.UL:
-                        # 目标点的距离
-                        pan_error = black_rect.x()-img.width()/2
-                        tilt_error = black_rect.y()-img.height()/2
-                        
-                        pan_current, tilt_current = servoturn(pan_error, tilt_error, pan_current, tilt_current)
-                        if abs(pan_error) + abs(tilt_error) < 0.1:
-                            position = NowPosition.UR
-                    case NowPosition.UR:
-                        pan_error = black_rect.x()-img.width()/2
-                        tilt_error = black_rect.y()-img.height()/2
-                        
-                        pan_current, tilt_current = servoturn(pan_error, tilt_error, pan_current, tilt_current)
-                        if abs(pan_error) + abs(tilt_error) < 0.1:
-                            position = NowPosition.DR                
-                    case NowPosition.DR:
-                        # 目标点的距离
-                        pan_error = black_rect.x()-img.width()/2
-                        tilt_error = black_rect.y()-img.height()/2
-                        
-                        pan_current, tilt_current = servoturn(pan_error, tilt_error, pan_current, tilt_current)
-                        if abs(pan_error) + abs(tilt_error) < 0.1:
-                            position = NowPosition.DL
-                    case NowPosition.DL:
-                        # 目标点的距离
-                        pan_error = black_rect.x()-img.width()/2
-                        tilt_error = black_rect.y()-img.height()/2
-                        
-                        pan_current, tilt_current = servoturn(pan_error, tilt_error, pan_current, tilt_current)
-                        if abs(pan_error) + abs(tilt_error) < 0.1:
-                            position = NowPosition.Finish
-            case TraceState.Finish:
-                Alarm()
-                state = MachineState.RESET
-    return
-
-
 def Alarm():
     print("Alarm rings!")
     return
 
 
-def doTrackGreenPoint():
+def doTrackRedPoint():
     img = sensor.snapshot()  # Take a picture and return the image.
     blobs = img.find_blobs([green_threshold])
     if blobs and not INpause:
@@ -229,6 +160,8 @@ def doTrackGreenPoint():
         
         print("pan_current: ", pan_current)
         print("tilt_current: ", tilt_current)
+        if abs(pan_error) + abs(tilt_error) < 1:
+            Alarm()
     return
 
 
@@ -242,9 +175,6 @@ while True:
         case MachineState.RESET:
             print("Reseting")
             doReset()
-        case MachineState.TRACING:
-            print("Tracing")
-            doTraceBlackLine()
         case MachineState.TRACKING:
             print("Tracking")
-            doTrackGreenPoint()
+            doTrackRedPoint()
