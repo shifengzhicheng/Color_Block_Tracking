@@ -8,7 +8,7 @@ from machine import I2C, Pin
 from pyb import Pin
 from pid import PID
 from ClassServo import Servos
-from enum import Enum, auto
+
 # 定义一些基本的量
 # define servo and pin
 i2c = I2C(sda=Pin('P5'), scl=Pin('P4'))
@@ -38,7 +38,7 @@ sensor.set_auto_whitebal(False)  # turn this off.
 
 # define color
 red_threshold = (13, 49, 18, 61, 6, 47)
-green_threshold = (90, 150, 30, 100, 30, 100)
+green_threshold = (0, 89, -25, 30, -34, 32)
 black_threshold = (0, 180, 0, 30, 0, 30)
 
 # define global const
@@ -66,7 +66,7 @@ class NowPosition():
     DR = 2
     DL = 3
     Finish = 4
-    
+
 # initial stare
 state = MachineState.RESET
 ## state of Travel rect
@@ -88,25 +88,25 @@ def doTask2():
     con_rect = [ul,ur,dr,dl]
     if position == NowPosition.UL:
         pan_error = con_rect[0][0]-img.width()/2
-        tilt_error = con_rect[0][1]-img.height()/2 
+        tilt_error = con_rect[0][1]-img.height()/2
         pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
         if abs(pan_output) + abs(tilt_output) < total_error:
             position = NowPosition.UR
-    elif position == NowPosition.UR: 
+    elif position == NowPosition.UR:
         pan_error = con_rect[1][0]-img.width()/2
-        tilt_error = con_rect[1][1]-img.height()/2 
+        tilt_error = con_rect[1][1]-img.height()/2
         pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
         if abs(pan_output) + abs(tilt_output) < total_error:
             position = NowPosition.DR
-    elif position == NowPosition.DR: 
+    elif position == NowPosition.DR:
         pan_error = con_rect[2][0]-img.width()/2
-        tilt_error = con_rect[2][1]-img.height()/2 
+        tilt_error = con_rect[2][1]-img.height()/2
         pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
         if abs(pan_output) + abs(tilt_output) < total_error:
             position = NowPosition.DL
-    elif position == NowPosition.DL: 
+    elif position == NowPosition.DL:
         pan_error = con_rect[3][0]-img.width()/2
-        tilt_error = con_rect[3][1]-img.height()/2 
+        tilt_error = con_rect[3][1]-img.height()/2
         pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
         if abs(pan_output) + abs(tilt_output) < total_error:
             position = NowPosition.UL
@@ -205,7 +205,7 @@ def doTraceBlackLine():
         elif state_Trace == TraceState.FindAngle:
             pan_error = black_rect.x()-img.width()/2
             tilt_error = black_rect.y()-img.height()/2
-                
+
             pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
             if abs(pan_output) + abs(tilt_output) < total_error:
                 state_Trace = TraceState.Travel
@@ -215,22 +215,22 @@ def doTraceBlackLine():
                 # 目标点的距离
                 pan_error = black_rect.corners()[1][0]-img.width()/2
                 tilt_error = black_rect.corners()[1][1]-img.height()/2
-                        
+
                 pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
                 if abs(pan_output) + abs(tilt_output) < total_error:
                     position = NowPosition.UR
             elif position == NowPosition.UR:
                 pan_error = black_rect.corners()[2][0]-img.width()/2
                 tilt_error = black_rect.corners()[2][1]-img.height()/2
-                        
+
                 pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
                 if abs(pan_output) + abs(tilt_output) < total_error:
-                    position = NowPosition.DR                
+                    position = NowPosition.DR
             elif position == NowPosition.DR:
                 # 目标点的距离
                 pan_error = black_rect.corners()[3][0]-img.width()/2
                 tilt_error = black_rect.corners()[3][1]-img.height()/2
-                        
+
                 pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
                 if abs(pan_output) + abs(tilt_output) < total_error:
                     position = NowPosition.DL
@@ -238,7 +238,7 @@ def doTraceBlackLine():
                 # 目标点的距离
                 pan_error = black_rect.corners()[0][0]-img.width()/2
                 tilt_error = black_rect.corners()[0][1]-img.height()/2
-                        
+
                 pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
                 if abs(pan_output) + abs(tilt_output) < total_error:
                     position = NowPosition.Finish
@@ -253,9 +253,9 @@ def Alarm():
     return
 
 
-def doTrackGreenPoint():
+def doTrackGreenPoint(pan_current, tilt_current):
     img = sensor.snapshot()  # Take a picture and return the image.
-    blobs = img.find_blobs([green_threshold])
+    blobs = img.find_blobs([green_threshold],invert=1)
     if blobs and not INpause:
         max_blob = find_max(blobs)
         pan_error = max_blob.cx()-img.width()/2
