@@ -32,11 +32,12 @@ sensor.set_pixformat(sensor.RGB565)  # use RGB565.
 sensor.set_framesize(sensor.QQVGA)  # use QQVGA for speed.
 sensor.skip_frames(20)  # Let new settings take affect.
 sensor.set_auto_whitebal(False)  # turn this off.
+sensor.set_auto_exposure(False, 1000)
 
 # define alarm
 
 # define color
-red_threshold = (13, 49, 18, 61, 6, 47)
+red_threshold = (60, 255, -20, 20, -20, 20)
 green_threshold = (90, 150, 30, 100, 30, 100)
 black_threshold = (0, 180, 0, 30, 0, 30)
 
@@ -126,7 +127,7 @@ def constraint(target):
 def servoturn(pan_error, tilt_error, pan, tilt):
 
     pan_output = pan_pid.get_pid(pan_error, 1)/2
-    tilt_output = tilt_pid.get_pid(tilt_error, 1)
+    tilt_output = tilt_pid.get_pid(tilt_error, 1)/2
 
     # 水平目标
     pan_target = pan + pan_output
