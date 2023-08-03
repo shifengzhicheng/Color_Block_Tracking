@@ -84,8 +84,8 @@ def doTask2():
     cx = 90;
     cy = 90;
 
-    ul_x = 103.4;
-    ul_y = 103.3;
+    ul_x = 103.9;
+    ul_y = 104.1;
 
     ur_x = 76.5;
     ur_y = 102.5;
@@ -100,32 +100,32 @@ def doTask2():
     dy = (ul_y-cy)/100;
 
     if position == NowPosition.UL:
-        for i in range(1,50):
-            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, cx+i*2*dx, cy+2*i*dy)
+        for i in range(1,10):
+            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, cx+i*10*dx, cy+10*i*dy)
             time.sleep(0.02)
         position = NowPosition.UR
     elif position == NowPosition.UR:
-        for i in range(1,106):
-            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, ul_x-2*i*dx, ur_y)
+        for i in range(1,102):
+            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, ul_x-2*i*dx, ur_y-0.19*i*dy)
             time.sleep(0.05)
         position = NowPosition.DR
     elif position == NowPosition.DR:
-        for i in range(1,103):
+        for i in range(1,96):
             pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, dr_x, ur_y-2*i*dy)
             time.sleep(0.05)
         position = NowPosition.DL
     elif position == NowPosition.DL:
-        for i in range(1,101):
+        for i in range(1,100):
             pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, dr_x+2*i*dx, dl_y)
             time.sleep(0.05)
 
-        for i in range(1,102):
+        for i in range(1,95):
             pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, ul_x, dl_y+2*i*dy)
             time.sleep(0.05)
-        position = NowPosition.UL
+        position = NowPosition.UR
         Alarm()
         #state = MachineState.RESET
-        return pan_current, tilt_current
+
 
 def button_read():
     # 在这里插入按键的读入程序
