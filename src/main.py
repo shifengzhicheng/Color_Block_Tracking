@@ -27,7 +27,6 @@ pan_pid = PID(p=0.1, i=0, imax=90)  # 在线调试使用这个PID
 tilt_pid = PID(p=0.1, i=0, imax=90)  # 在线调试使用这个PID
 pan_current = 90
 tilt_current = 90
-
 # define sensor
 sensor.reset()  # Initialize the camera sensor.
 sensor.set_pixformat(sensor.RGB565)  # use RGB565.
@@ -44,7 +43,7 @@ green_threshold2 = (65, 84, -21, -5, 0, 8)
 green_threshold3 = (68, 75, -17, -3, -3, 8)
 
 green_threshold = [green_threshold1,green_threshold2,green_threshold3]
-black_threshold = (0, 180, 0, 30, 0, 30)
+black_threshold = (0, 50, 0, 30, 0, 30)
 
 # define global const
 total_error = 0.5
@@ -89,47 +88,42 @@ def doTask2():
     cx = 90;
     cy = 90;
 
-    ul_x = 103.9
-    ul_y = 104.1
+    ul_x = 104.6
+    ul_y = 102.55
 
-    ur_x = 76.5
-    ur_y = 102.5
-
-    dr_x = 76.5
-    dr_y = 77.5
-
-    dl_x = 103.5
-    dl_y = 77.5
 
     dx = (ul_x-cx)/100
     dy = (ul_y-cy)/100
-
+    i_1 =85
+    i_2 = 100.5
+    i_3 = 84
+    i_4 = 99
     if position == NowPosition.UL:
-        for i in range(1,10):
-            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, cx+i*10*dx, cy+10*i*dy)
-            time.sleep(0.02)
-        position = NowPosition.UR
+       for i in range(1,20):
+            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, cx+5*i*dx, cy+5*i*dy)
+            time.sleep(0.1)
+       position = NowPosition.UR
     elif position == NowPosition.UR:
-        for i in range(1,102):
-            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, ul_x-2*i*dx, ur_y-0.19*i*dy)
+       for i in range(1,i_1):
+            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, ul_x-2*i*dx, ul_y-0.17*i*dy)
             time.sleep(0.05)
-        position = NowPosition.DR
+       position = NowPosition.DR
     elif position == NowPosition.DR:
-        for i in range(1,96):
-            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, dr_x, ur_y-2*i*dy)
+       for i in range(1,i_2):
+            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, ul_x-2*i_1*dx, ul_y-2*i*dy)
             time.sleep(0.05)
-        position = NowPosition.DL
+       position = NowPosition.DL
     elif position == NowPosition.DL:
-        for i in range(1,100):
-            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, dr_x+2*i*dx, dl_y)
+       for i in range(1,i_3):
+            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, ul_x-i_1*2*dx+2*i*dx, ul_y-2*i_2*dy)
             time.sleep(0.05)
 
-        for i in range(1,95):
-            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, ul_x, dl_y+2*i*dy)
+       for i in range(1,i_4):
+            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, ul_x-0.26-0.1*i*dx, ul_y-2*i_2*dy+2*i*dy)
             time.sleep(0.05)
-        position = NowPosition.UR
-        Alarm()
-        #state = MachineState.RESET
+       position = NowPosition.Finish
+       Alarm()
+       state = MachineState.RESET
 
 def button_read():
     # 在这里插入按键的读入程序
@@ -177,6 +171,7 @@ def find_max(blobs):
 def doReset():
     # 初始化
     img, red_point, black_rect = findtwo()
+
     # 找到黑色矩形和红点
     # 在图像上绘制矩形及中心点
     if red_point and black_rect:
@@ -203,7 +198,7 @@ def constraint(target):
         if target > LargeLimit:
             target = LargeLimit
     return target
-    
+
 max_step = 10
 def constrait_error(pan_error, tilt_error):
     if tilt_error == 0:
@@ -217,11 +212,11 @@ def constrait_error(pan_error, tilt_error):
             tilt_error = max(pan_error,max_step)
             pan_error = tilt_error*ratio
     return pan_error, tilt_error
-    
+
 def servoturn(pan_error, tilt_error, pan, tilt):
-    
+
     pan_error, tilt_error = constrait_error(pan_error, tilt_error)
-    
+
     pan_output = pan_pid.get_pid(pan_error, 1)/2
     tilt_output = tilt_pid.get_pid(tilt_error, 1)/2
 
@@ -242,7 +237,7 @@ def findtwo():
     img = sensor.snapshot()  # Take a picture and return the image.
     img.lens_corr(1.8)
     black_rects = img.find_rects(threshold=15000)
-    red_points = img.find_blobs(green_threshold, merge = 1)   
+    red_points = img.find_blobs(green_threshold, merge = 1)
     # 找到黑色矩形和红点
     # 在图像上绘制矩形及中心点
     if black_rects and red_points:
@@ -251,7 +246,7 @@ def findtwo():
         return img, red_point, black_rect
     else:
         return img, None, None
-    
+
 
 def doTraceBlackLine(pan_current, tilt_current):
     global state_Trace
@@ -261,7 +256,7 @@ def doTraceBlackLine(pan_current, tilt_current):
     ## Find the UpLeft angle of the black rectangle
     #black_rect = img.find_rects(threshold=15000)
     #red_points = img.find_blobs([green_threshold,green_threshold2], merge = 1)
-    img, red_point, black_rect = findtwo()    
+    img, red_point, black_rect = findtwo()
     # 找到黑色矩形和红点
     # 在图像上绘制矩形及中心点
     if red_point and black_rect:
@@ -282,14 +277,14 @@ def doTraceBlackLine(pan_current, tilt_current):
                 # 目标点的距离
                 pan_error = black_rect.corners()[1][0]-red_point.cx()
                 tilt_error = black_rect.corners()[1][1]-red_point.cy()
-    
+
                 pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
                 if abs(pan_output) + abs(tilt_output) < total_error:
                     position = NowPosition.UR
             elif position == NowPosition.UR:
                 pan_error = black_rect.corners()[2][0]-red_point.cx()
                 tilt_error = black_rect.corners()[2][1]-red_point.cy()
-    
+
                 pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
                 if abs(pan_output) + abs(tilt_output) < total_error:
                     position = NowPosition.DR
@@ -297,7 +292,7 @@ def doTraceBlackLine(pan_current, tilt_current):
                 # 目标点的距离
                 pan_error = black_rect.corners()[3][0]-red_point.cx()
                 tilt_error = black_rect.corners()[3][1]-red_point.cy()
-    
+
                 pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
                 if abs(pan_output) + abs(tilt_output) < total_error:
                     position = NowPosition.DL
@@ -305,7 +300,7 @@ def doTraceBlackLine(pan_current, tilt_current):
                 # 目标点的距离
                 pan_error = black_rect.corners()[0][0]-red_point.cx()
                 tilt_error = black_rect.corners()[0][1]-red_point.cy()
-    
+
                 pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
                 if abs(pan_output) + abs(tilt_output) < total_error:
                     position = NowPosition.UL
