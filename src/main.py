@@ -179,6 +179,7 @@ def find_r(rects):
 
 def doReset():
     # 初始化
+    '''
     img, red_point, black_rect = findtwo()
 
     # 找到黑色矩形和红点
@@ -187,6 +188,7 @@ def doReset():
         img.draw_rectangle(red_point.rect())
         img.draw_rectangle(black_rect.rect())
     # initial stare
+    '''
     state = MachineState.RESET
     ## state of Travel rect
     state_Trace = TraceState.RESET
@@ -246,12 +248,22 @@ def findtwo():
     img = sensor.snapshot()  # Take a picture and return the image.
     img.lens_corr(1.8)
     black_rects = img.find_rects(threshold=15000)
+    
+    if black_rects:
+        black_rect = find_r(black_rects)
+        if black_rect:
+            img.draw_rectangle(black_rect.rect(),color = (255,255,255))
+            area = (round(black_rect.x()+black_rect.w()/2)+30,round(black_rect.y()+black_rect.h()/2)+20,280,240)
+            sensor.set_framesize(sensor.VGA)
+            sensor.set_windowing(area)
+            #print(black_rect.magnitude())   
+    
     red_points = img.find_blobs(green_threshold, merge = 1)
     # 找到黑色矩形和红点
     # 在图像上绘制矩形及中心点
-    if black_rects and red_points:
+    if red_points:
         red_point = find_max(red_points)
-        black_rect = find_max(black_rects)
+        
         return img, red_point, black_rect
     else:
         return img, None, None
