@@ -168,6 +168,15 @@ def find_max(blobs):
     return max_blob
 
 
+def find_r(rects):
+    max_s = 120000
+    min_s = 100000
+
+    for r in rects:
+        if r[4] < max_s and r[4] > min_s:
+            ans = r
+            return ans
+
 def doReset():
     # 初始化
     img, red_point, black_rect = findtwo()
