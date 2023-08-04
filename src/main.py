@@ -254,7 +254,7 @@ def doTraceBlackLine(pan_current, tilt_current):
         # 找到黑色矩形和红点
         # 在图像上绘制矩形及中心点
         img.draw_rectangle(black_rect.rect(), color = (255,255,255))
-        img.draw_rectangle(red_point)
+        img.draw_circle(red_point.cx(),red_point.cy(),color = (0,255,0))
         if state_Trace == TraceState.RESET:
             state_Trace = TraceState.FindAngle
         elif state_Trace == TraceState.FindAngle:
