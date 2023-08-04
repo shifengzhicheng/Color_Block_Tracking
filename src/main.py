@@ -37,11 +37,12 @@ sensor.set_auto_whitebal(False)  # turn this off.
 # define alarm
 
 # define color
-red_threshold = (13, 49, 18, 61, 6, 47)
+red_threshold1 = (66, 76, 16, 57, -13, 10)
 green_threshold1 = (29, 76, -48, -11, -14, 43)
 green_threshold2 = (65, 84, -21, -5, 0, 8)
 green_threshold3 = (68, 75, -17, -3, -3, 8)
 
+red_threshold = [red_threshold1]
 green_threshold = [green_threshold1,green_threshold2,green_threshold3]
 black_threshold = (0, 50, 0, 30, 0, 30)
 
@@ -175,7 +176,7 @@ def doReset():
     # 找到黑色矩形和红点
     # 在图像上绘制矩形及中心点
     if red_point and black_rect:
-        img.draw_rectangle(red_point.rect())
+        img.draw_cross(red_point.cx(),red_point.cy(),color = (255,0,0))
         img.draw_rectangle(black_rect.rect())
     # initial stare
     state = MachineState.RESET
@@ -237,12 +238,14 @@ def findtwo():
     img = sensor.snapshot()  # Take a picture and return the image.
     img.lens_corr(1.8)
     black_rects = img.find_rects(threshold=15000)
-    red_points = img.find_blobs(green_threshold, merge = 1)
+    red_points = img.find_blobs(red_threshold, merge = 1)
     # 找到黑色矩形和红点
     # 在图像上绘制矩形及中心点
     if black_rects and red_points:
         red_point = find_max(red_points)
+#        print("red_point", red_point)
         black_rect = find_max(black_rects)
+#        print("black_rect", black_rect.magnitude())
         return img, red_point, black_rect
     else:
         return img, None, None
@@ -261,7 +264,7 @@ def doTraceBlackLine(pan_current, tilt_current):
     # 在图像上绘制矩形及中心点
     if red_point and black_rect:
         img.draw_rectangle(black_rect.rect())
-        img.draw_rectangle(red_point.rect())
+        img.draw_cross(red_point.cx(),red_point.cy(),color = (255,0,0))
         print(state_Trace, position)
         if state_Trace == TraceState.RESET:
             state_Trace = TraceState.FindAngle
@@ -340,7 +343,8 @@ def Alarm():
 while True:
     clock.tick()  # Track elapsed milliseconds between snapshots().
     state, INpause = button_read()  # change if button signal comes
-
+    if INpause:
+        print("pause")
 # 这里开始进行状态跳转执行
     if state == MachineState.RESET:
         print("RESET")

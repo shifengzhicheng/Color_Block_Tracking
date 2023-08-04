@@ -21,8 +21,8 @@ servo = Servos(i2c, address=0x40, freq=50,
 # define PID
 # pan_pid = PID(p=0.07, i=0, imax=90) #脱机运行或者禁用图像传输，使用这个PID
 # tilt_pid = PID(p=0.05, i=0, imax=90) #脱机运行或者禁用图像传输，使用这个PID
-pan_pid = PID(p=0.1, i=0, imax=90)  # 在线调试使用这个PID
-tilt_pid = PID(p=0.1, i=0, imax=90)  # 在线调试使用这个PID
+pan_pid = PID(p=0.07, i=0, imax=90)  # 在线调试使用这个PID
+tilt_pid = PID(p=0.07, i=0, imax=90)  # 在线调试使用这个PID
 
 pan_current = 90
 tilt_current = 90
@@ -39,9 +39,10 @@ sensor.set_auto_whitebal(False)  # turn this off.
 
 # define color
 red_threshold1 = (73, 90, 9, 50, -5, 19)
+red_threshold2 = (71, 81, 18, 56, -17, 4)
 red_threshold3 = (24, 40, 9, 29, 2, 21)
-red_threshold = [red_threshold1, red_threshold3]
-green_threshold1 = (90, 150, 30, 100, 30, 100)
+red_threshold = [red_threshold1, red_threshold2, red_threshold3]
+green_threshold1 = (87, 95, -50, -15, -2, 35)
 green_threshold = [green_threshold1]
 black_threshold1 = (0, 180, 0, 30, 0, 30)
 
@@ -84,7 +85,7 @@ def button_read():
     elif key2 == key2_debounced == 0:
         new_state = MachineState.TRACKING
     else:
-        new_state = MachineState.RESET  # 默认状态
+        new_state = state  # 默认状态
 
     # 检测第三个按键，并进行暂停/继续操作
     if key3 == key3_debounced == 0:
