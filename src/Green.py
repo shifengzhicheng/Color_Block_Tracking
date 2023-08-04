@@ -8,6 +8,7 @@ from machine import I2C, Pin
 from pyb import Pin
 from pid import PID
 from ClassServo import Servos
+from math import sqrt
 # 定义一些基本的量
 # define servo and pin
 i2c = I2C(sda=Pin('P5'), scl=Pin('P4'))
@@ -29,17 +30,20 @@ tilt_current = 90
 # define sensor
 sensor.reset()  # Initialize the camera sensor.
 sensor.set_pixformat(sensor.RGB565)  # use RGB565.
-sensor.set_framesize(sensor.QQVGA)  # use QQVGA for speed.
+sensor.set_framesize(sensor.QVGA)  # use QQVGA for speed.
 sensor.skip_frames(20)  # Let new settings take affect.
 sensor.set_auto_whitebal(False)  # turn this off.
-sensor.set_auto_exposure(False, 1000)
+#sensor.set_auto_exposure(False, 8000)
 
 # define alarm
 
 # define color
-red_threshold = (60, 255, -20, 20, -20, 20)
-green_threshold = (90, 150, 30, 100, 30, 100)
-black_threshold = (0, 180, 0, 30, 0, 30)
+red_threshold1 = (73, 90, 9, 50, -5, 19)
+red_threshold3 = (24, 40, 9, 29, 2, 21)
+red_threshold = [red_threshold1, red_threshold3]
+green_threshold1 = (90, 150, 30, 100, 30, 100)
+green_threshold = [green_threshold1]
+black_threshold1 = (0, 180, 0, 30, 0, 30)
 
 clock = time.clock()  # Tracks FPS.
 
@@ -52,17 +56,8 @@ class MachineState():
     TRACKING = 2
 
 
-class TraceState():
-    RESET = 0
-    FindAngle = 1
-    Travel = 2
-    Finish = 3
-
-
 # initial stare
 state = MachineState.RESET
-# state of Travel rect
-state_Trace = TraceState.RESET
 # 默认非暂停
 INpause = False
 
@@ -111,16 +106,28 @@ def find_max(blobs):
 def doReset():
     # 初始化
     img = sensor.snapshot()
+    img.lens_corr(1.8)
+    green_points = img.find_blobs(green_threshold, merge = 1)
+    red_points = img.find_blobs(red_threshold, merge = 1)
+    if green_points:
+        green_point = find_max(green_points)
+        img.draw_cross(green_point.cx(), green_point.cy(),color = (0,255,0))  # cx, cy
+    if red_points:
+        red_point = find_max(red_points)
+        img.draw_cross(red_point.cx(), red_point.cy(),color = (255,0,0))  # cx, cy
     pan_current, tilt_current, pan_out, tilt_out = servoturn(0, 0, 90, 90)
     return pan_current, tilt_current
 
 
+LowLimit = 60
+LargeLimit = 120
+
 def constraint(target):
-    if target < 75 or target > 105:
-        if target < 75:
-            target = 75
-        if target > 105:
-            target = 105
+    if target < LowLimit or target > LargeLimit:
+        if target < LowLimit:
+            target = LowLimit
+        if target > LargeLimit:
+            target = LargeLimit
     return target
 
 
@@ -147,26 +154,31 @@ def Alarm():
     print("Alarm rings!")
     return
 
+def findtwo():
+    img = sensor.snapshot()  # Take a picture and return the image.
+    img.lens_corr(1.8)
+    green_points = img.find_blobs(green_threshold, merge = 1)
+    red_points = img.find_blobs(red_threshold, merge = 1)
+    # 找到黑色矩形和红点
+    # 在图像上绘制矩形及中心点
+    if green_points and red_points:
+        red_point = find_max(red_points)
+        green_point = find_max(green_points)
+        return img, red_point, green_point
+    else:
+        return img, None, None
 
 def doTrackRedPoint(pan_current, tilt_current):
-    img = sensor.snapshot()  # Take a picture and return the image.
-    red_blobs = img.find_blobs([red_threshold])
-    green_blobs = img.find_blobs([green_threshold])
-    if red_blobs and green_blobs and not INpause:
-        max_redblob = find_max(red_blobs)
-        max_greenblob = find_max(green_blobs)
+    img, max_redblob, max_greenblob = findtwo()
+    if max_redblob and max_greenblob and not INpause:
         pan_error = max_greenblob.cx()-max_redblob.cx()
         tilt_error = max_greenblob.cy()-max_redblob.cy()
         distance = sqrt(pan_error**2+tilt_error**2)
-        
+
         #img.draw_rectangle(max_blob.rect())  # rect
         img.draw_cross(max_greenblob.cx(), max_greenblob.cy(),color = (255,255,255))  # cx, cy
         img.draw_cross(max_redblob.cx(), max_redblob.cy(),color = (0,255,0))  # cx, cy
         pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
-
-        print("pan_current: ", pan_current)
-        print("tilt_current: ", tilt_current)
-        print(pan_output,tilt_output)
         if distance < 3 :
             Alarm()
             time.sleep(0.1)
@@ -174,6 +186,21 @@ def doTrackRedPoint(pan_current, tilt_current):
             Alarm()
     return pan_current, tilt_current
 
+def TrackRed(pan_current, tilt_current):
+    img = sensor.snapshot()  # Take a picture and return the image.
+    img.lens_corr(1.8)
+    red_points = img.find_blobs(red_threshold, merge = 1)
+    if red_points and not INpause:
+        max_redblob = find_max(red_points)
+        pan_error = max_redblob.cx() - img.width()/2
+        tilt_error = max_redblob.cy() - img.height()/2
+        distance = sqrt(pan_error**2+tilt_error**2)
+        img.draw_cross(max_redblob.cx(), max_redblob.cy(),color = (0,255,0))  # cx, cy
+        pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
+        if distance < 3 :
+            Alarm()
+            time.sleep(0.1)
+    return pan_current, tilt_current
 
 # 在这里进入loop
 while True:
@@ -184,6 +211,9 @@ while True:
     if state == MachineState.RESET:
         print("Reseting")
         pan_current, tilt_current = doReset()
+    elif state == MachineState.TRACING:
+        print("TRACING")
+        pan_current, tilt_current = TrackRed(pan_current, tilt_current)
     elif state == MachineState.TRACKING:
         print("Tracking")
         pan_current, tilt_current = doTrackRedPoint(pan_current, tilt_current)
