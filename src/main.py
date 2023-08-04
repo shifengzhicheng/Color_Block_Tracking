@@ -27,7 +27,6 @@ pan_pid = PID(p=0.1, i=0, imax=90)  # 在线调试使用这个PID
 tilt_pid = PID(p=0.1, i=0, imax=90)  # 在线调试使用这个PID
 pan_current = 90
 tilt_current = 90
-
 # define sensor
 sensor.reset()  # Initialize the camera sensor.
 sensor.set_pixformat(sensor.RGB565)  # use RGB565.
@@ -44,7 +43,7 @@ green_threshold2 = (65, 84, -21, -5, 0, 8)
 green_threshold3 = (68, 75, -17, -3, -3, 8)
 
 green_threshold = [green_threshold1,green_threshold2,green_threshold3]
-black_threshold = (0, 180, 0, 30, 0, 30)
+black_threshold = (0, 50, 0, 30, 0, 30)
 
 # define global const
 total_error = 0.5
@@ -89,47 +88,42 @@ def doTask2():
     cx = 90
     cy = 90
 
-    ul_x = 103.9
-    ul_y = 104.1
+    ul_x = 103.5
+    ul_y = 102.55
 
-    ur_x = 76.5
-    ur_y = 102.5
-
-    dr_x = 76.5
-    dr_y = 77.5
-
-    dl_x = 103.5
-    dl_y = 77.5
 
     dx = (ul_x-cx)/100
     dy = (ul_y-cy)/100
-
+    i_1 =87
+    i_2 = 100.5
+    i_3 = 85
+    i_4 = 99.5
     if position == NowPosition.UL:
-        for i in range(1,10):
-            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, cx+i*10*dx, cy+10*i*dy)
-            time.sleep(0.02)
-        position = NowPosition.UR
+       for i in range(1,20):
+            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, cx+5*i*dx, cy+5*i*dy)
+            time.sleep(0.1)
+       position = NowPosition.UR
     elif position == NowPosition.UR:
-        for i in range(1,102):
-            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, ul_x-2*i*dx, ur_y-0.19*i*dy)
+       for i in range(1,i_1):
+            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, ul_x-2*i*dx, ul_y-0.17*i*dy)
             time.sleep(0.05)
-        position = NowPosition.DR
+       position = NowPosition.DR
     elif position == NowPosition.DR:
-        for i in range(1,96):
-            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, dr_x, ur_y-2*i*dy)
+       for i in range(1,i_2):
+            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, ul_x-2*i_1*dx, ul_y-2*i*dy)
             time.sleep(0.05)
-        position = NowPosition.DL
+       position = NowPosition.DL
     elif position == NowPosition.DL:
-        for i in range(1,100):
-            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, dr_x+2*i*dx, dl_y)
+       for i in range(1,i_3):
+            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, ul_x-i_1*2*dx+2*i*dx, ul_y-2*i_2*dy)
             time.sleep(0.05)
 
-        for i in range(1,95):
-            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, ul_x, dl_y+2*i*dy)
+       for i in range(1,i_4):
+            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, ul_x-0.26-0.1*i*dx, ul_y-2*i_2*dy+2*i*dy)
             time.sleep(0.05)
-        position = NowPosition.UR
-        Alarm()
-        #state = MachineState.RESET
+       position = NowPosition.Finish
+       Alarm()
+       state = MachineState.RESET
 
 def button_read():
     # 在这里插入按键的读入程序
@@ -177,6 +171,7 @@ def find_max(blobs):
 def doReset():
     # 初始化
     img, red_point, black_rect = findtwo()
+
     # 找到黑色矩形和红点
     # 在图像上绘制矩形及中心点
     if red_point and black_rect:
