@@ -150,20 +150,26 @@ def Alarm():
 
 def doTrackRedPoint(pan_current, tilt_current):
     img = sensor.snapshot()  # Take a picture and return the image.
-    blobs = img.find_blobs([red_threshold])
-    if blobs and not INpause:
-        max_blob = find_max(blobs)
-        pan_error = max_blob.cx()-img.width()/2
-        tilt_error = max_blob.cy()-img.height()/2
-        img.draw_rectangle(max_blob.rect())  # rect
-        img.draw_cross(max_blob.cx(), max_blob.cy())  # cx, cy
-
+    red_blobs = img.find_blobs([red_threshold])
+    green_blobs = img.find_blobs([green_threshold])
+    if red_blobs and green_blobs and not INpause:
+        max_redblob = find_max(red_blobs)
+        max_greenblob = find_max(green_blobs)
+        pan_error = max_greenblob.cx()-max_redblob.cx()
+        tilt_error = max_greenblob.cy()-max_redblob.cy()
+        distance = sqrt(pan_error**2+tilt_error**2)
+        
+        #img.draw_rectangle(max_blob.rect())  # rect
+        img.draw_cross(max_greenblob.cx(), max_greenblob.cy(),color = (255,255,255))  # cx, cy
+        img.draw_cross(max_redblob.cx(), max_redblob.cy(),color = (0,255,0))  # cx, cy
         pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
 
         print("pan_current: ", pan_current)
         print("tilt_current: ", tilt_current)
         print(pan_output,tilt_output)
-
+        if distance < 3 :
+            Alarm()
+            time.sleep(0.1)
         if abs(pan_output) + abs(tilt_output) < 1:
             Alarm()
     return pan_current, tilt_current
