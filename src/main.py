@@ -88,16 +88,16 @@ def doTask2():
     cx = 90;
     cy = 90;
 
-    ul_x = 104.6
+    ul_x = 103.5
     ul_y = 102.55
 
 
     dx = (ul_x-cx)/100
     dy = (ul_y-cy)/100
-    i_1 =85
+    i_1 =87
     i_2 = 100.5
-    i_3 = 84
-    i_4 = 99
+    i_3 = 85
+    i_4 = 99.5
     if position == NowPosition.UL:
        for i in range(1,20):
             pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, cx+5*i*dx, cy+5*i*dy)
