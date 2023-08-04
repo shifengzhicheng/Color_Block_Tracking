@@ -179,7 +179,7 @@ def doReset():
     img, red_point, black_rect = findtwo()
     # 找到黑色矩形和红点
     # 在图像上绘制矩形及中心点
-    if red_point and black_rect
+    if red_point and black_rect:
         img.draw_rectangle(red_point.rect())
         img.draw_rectangle(black_rect.rect())
     # initial stare
@@ -250,7 +250,7 @@ def findtwo():
         black_rect = find_max(black_rects)
         return img, red_point, black_rect
     else:
-        return img
+        return img, None, None
     
 
 def doTraceBlackLine(pan_current, tilt_current):
@@ -264,53 +264,54 @@ def doTraceBlackLine(pan_current, tilt_current):
     img, red_point, black_rect = findtwo()    
     # 找到黑色矩形和红点
     # 在图像上绘制矩形及中心点
-    img.draw_rectangle(black_rect.rect())
-    img.draw_rectangle(red_point.rect())
-    print(state_Trace, position)
-    if state_Trace == TraceState.RESET:
-        state_Trace = TraceState.FindAngle
-    elif state_Trace == TraceState.FindAngle:
-        pan_error = black_rect.x()-red_point.cx()
-        tilt_error = black_rect.y()-red_point.cy()
-        pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
-        if abs(pan_output) + abs(tilt_output) < total_error:
-            state_Trace = TraceState.Travel
-            position = NowPosition.UL
-    elif state_Trace == TraceState.Travel:
-        if position == NowPosition.UL:
-            # 目标点的距离
-            pan_error = black_rect.corners()[1][0]-red_point.cx()
-            tilt_error = black_rect.corners()[1][1]-red_point.cy()
-
+    if red_point and black_rect:
+        img.draw_rectangle(black_rect.rect())
+        img.draw_rectangle(red_point.rect())
+        print(state_Trace, position)
+        if state_Trace == TraceState.RESET:
+            state_Trace = TraceState.FindAngle
+        elif state_Trace == TraceState.FindAngle:
+            pan_error = black_rect.x()-red_point.cx()
+            tilt_error = black_rect.y()-red_point.cy()
             pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
             if abs(pan_output) + abs(tilt_output) < total_error:
-                position = NowPosition.UR
-        elif position == NowPosition.UR:
-            pan_error = black_rect.corners()[2][0]-red_point.cx()
-            tilt_error = black_rect.corners()[2][1]-red_point.cy()
-
-            pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
-            if abs(pan_output) + abs(tilt_output) < total_error:
-                position = NowPosition.DR
-        elif position == NowPosition.DR:
-            # 目标点的距离
-            pan_error = black_rect.corners()[3][0]-red_point.cx()
-            tilt_error = black_rect.corners()[3][1]-red_point.cy()
-
-            pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
-            if abs(pan_output) + abs(tilt_output) < total_error:
-                position = NowPosition.DL
-        elif position == NowPosition.DL:
-            # 目标点的距离
-            pan_error = black_rect.corners()[0][0]-red_point.cx()
-            tilt_error = black_rect.corners()[0][1]-red_point.cy()
-
-            pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
-            if abs(pan_output) + abs(tilt_output) < total_error:
+                state_Trace = TraceState.Travel
                 position = NowPosition.UL
-    elif state_Trace == TraceState.Finish:
-        Alarm()
-        state = MachineState.RESET
+        elif state_Trace == TraceState.Travel:
+            if position == NowPosition.UL:
+                # 目标点的距离
+                pan_error = black_rect.corners()[1][0]-red_point.cx()
+                tilt_error = black_rect.corners()[1][1]-red_point.cy()
+    
+                pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
+                if abs(pan_output) + abs(tilt_output) < total_error:
+                    position = NowPosition.UR
+            elif position == NowPosition.UR:
+                pan_error = black_rect.corners()[2][0]-red_point.cx()
+                tilt_error = black_rect.corners()[2][1]-red_point.cy()
+    
+                pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
+                if abs(pan_output) + abs(tilt_output) < total_error:
+                    position = NowPosition.DR
+            elif position == NowPosition.DR:
+                # 目标点的距离
+                pan_error = black_rect.corners()[3][0]-red_point.cx()
+                tilt_error = black_rect.corners()[3][1]-red_point.cy()
+    
+                pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
+                if abs(pan_output) + abs(tilt_output) < total_error:
+                    position = NowPosition.DL
+            elif position == NowPosition.DL:
+                # 目标点的距离
+                pan_error = black_rect.corners()[0][0]-red_point.cx()
+                tilt_error = black_rect.corners()[0][1]-red_point.cy()
+    
+                pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
+                if abs(pan_output) + abs(tilt_output) < total_error:
+                    position = NowPosition.UL
+        elif state_Trace == TraceState.Finish:
+            Alarm()
+            state = MachineState.RESET
     return pan_current, tilt_current
 
 
