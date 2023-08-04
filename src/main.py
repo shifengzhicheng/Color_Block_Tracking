@@ -169,8 +169,18 @@ def find_max(blobs):
     return max_blob
 
 
+def find_r(rects):
+    max_s = 120000
+    min_s = 100000
+
+    for r in rects:
+        if r[4] < max_s and r[4] > min_s:
+            ans = r
+            return ans
+
 def doReset():
     # 初始化
+    '''
     img, red_point, black_rect = findtwo()
 
     # 找到黑色矩形和红点
@@ -179,6 +189,7 @@ def doReset():
         img.draw_cross(red_point.cx(),red_point.cy(),color = (255,0,0))
         img.draw_rectangle(black_rect.rect())
     # initial stare
+    '''
     state = MachineState.RESET
     ## state of Travel rect
     state_Trace = TraceState.RESET
@@ -241,10 +252,9 @@ def findtwo():
     red_points = img.find_blobs(red_threshold, merge = 1)
     # 找到黑色矩形和红点
     # 在图像上绘制矩形及中心点
-    if black_rects and red_points:
+    if red_points:
         red_point = find_max(red_points)
 #        print("red_point", red_point)
-        black_rect = find_max(black_rects)
 #        print("black_rect", black_rect.magnitude())
         return img, red_point, black_rect
     else:
