@@ -15,6 +15,8 @@ i2c = I2C(sda=Pin('P5'), scl=Pin('P4'))
 pin1 = Pin('P1', Pin.IN, Pin.PULL_UP)
 pin2 = Pin('P2', Pin.IN, Pin.PULL_UP)
 pin3 = Pin('P3', Pin.IN, Pin.PULL_UP)
+pin6 = Pin('P6', Pin.OUT_PP, Pin.PULL_NONE)
+
 servo = Servos(i2c, address=0x40, freq=50,
                min_us=500, max_us=2500, degrees=180)
 
@@ -153,6 +155,7 @@ def servoturn(pan_error, tilt_error, pan, tilt):
 
 def Alarm():
     print("Alarm rings!")
+    pin6.high()
     return
 
 def findtwo():
@@ -180,10 +183,7 @@ def doTrackRedPoint(pan_current, tilt_current):
         img.draw_cross(max_greenblob.cx(), max_greenblob.cy(),color = (255,255,255))  # cx, cy
         img.draw_cross(max_redblob.cx(), max_redblob.cy(),color = (0,255,0))  # cx, cy
         pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
-        if distance < 3 :
-            Alarm()
-            time.sleep(0.1)
-        if abs(pan_output) + abs(tilt_output) < 1:
+        if abs(pan_error) + abs(tilt_error) < 3:
             Alarm()
     return pan_current, tilt_current
 
@@ -198,14 +198,16 @@ def TrackRed(pan_current, tilt_current):
         distance = sqrt(pan_error**2+tilt_error**2)
         img.draw_cross(max_redblob.cx(), max_redblob.cy(),color = (0,255,0))  # cx, cy
         pan_current, tilt_current,pan_output,tilt_output = servoturn(pan_error, tilt_error, pan_current, tilt_current)
-        if distance < 3 :
-            Alarm()
-            time.sleep(0.1)
     return pan_current, tilt_current
 
+def check_timeevent():
+    if time.tick() - alarm_t > 1000:
+        alarm_t = 0
+        pin6.low()
 # 在这里进入loop
 while True:
     clock.tick()  # Track elapsed milliseconds between snapshots().
+    check_timeevent()
     state, INpause = button_read()  # change if button signal comes
 
 # 这里开始进行状态跳转执行
