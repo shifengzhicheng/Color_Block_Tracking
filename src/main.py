@@ -87,49 +87,61 @@ INpause = False
 
 # 根据button读入进行state跳转
 
+iterator = 1
+cx = 90
+cy = 90
+
+ul_x = 104
+ul_y = 104
+
+dx = (ul_x-cx)/100
+dy = (ul_y-cy)/100
+i_1 =96.5
+i_2 = 96
+i_3 = 92
+i_4 = 97
+
 def doTask2():
-    img = sensor.snapshot()
     global position
     global state
-    cx = 90
-    cy = 90
-
-    ul_x = 104
-    ul_y = 104
-
-
-    dx = (ul_x-cx)/100
-    dy = (ul_y-cy)/100
-    i_1 =96.5
-    i_2 = 96
-    i_3 = 92
-    i_4 = 97
+    global iterator
     if position == NowPosition.UL:
-       for i in range(1,20):
-            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, cx+5*i*dx, cy+5*i*dy)
-            time.sleep(0.1)
-       position = NowPosition.UR
+        servoturn(0, 0, cx+5*iterator*dx, cy+5*iterator*dy)    
+        iterator += 1
+        time.sleep(0.1)
+        if iterator == 20:
+            position = NowPosition.UR
+            iterator = 1
     elif position == NowPosition.UR:
-       for i in range(1,i_1):
-            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, ul_x-2*i*dx, ul_y-0.18*i*dy)
-            time.sleep(0.05)
-       position = NowPosition.DR
+        servoturn(0, 0, ul_x-2*iterator*dx, ul_y-0.18*iterator*dy)
+        iterator += 1
+        time.sleep(0.05)
+        if iterator == i_1:
+            position = NowPosition.DR
+            iterator = 1
     elif position == NowPosition.DR:
-       for i in range(1,i_2):
-            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, ul_x-2*i_1*dx, ul_y-2*i*dy)
-            time.sleep(0.05)
-       position = NowPosition.DL
+        servoturn(0, 0, ul_x-2*i_1*dx, ul_y-2*iterator*dy)
+        iterator += 1
+        time.sleep(0.05)
+        if iterator == i_2:
+            position = NowPosition.DL
+            iterator = 1
     elif position == NowPosition.DL:
-       for i in range(1,i_3):
-            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, ul_x-i_1*2*dx+2*i*dx, ul_y-2*i_2*dy-0.03*i*dy)
-            time.sleep(0.05)
-
-       for i in range(1,i_4):
-            pan_current, tilt_current,pan_output,tilt_output = servoturn(0, 0, ul_x-0.2-0.1*i*dx, ul_y-2*i_2*dy+2*i*dy)
-            time.sleep(0.05)
-       position = NowPosition.Finish
-       Alarm()
-       state = MachineState.RESET
+        servoturn(0, 0, ul_x-i_1*2*dx+2*iterator*dx, ul_y-2*i_2*dy-0.03*iterator*dy)
+        iterator += 1
+        time.sleep(0.05)
+        if iterator == i_3:
+            iterator = 1
+            position = NowPosition.Finish
+    elif position == NowPosition.Finish:
+        servoturn(0, 0, ul_x-0.2-0.1*iterator*dx, ul_y-2*i_2*dy+2*iterator*dy)
+        iterator += 1
+        time.sleep(0.05)
+        if iterator == i_4:
+            position == NowPosition.CE
+            Alarm()
+            iterator = 1
+            state = MachineState.RESET
 
 def button_read():
     # 在这里插入按键的读入程序
@@ -184,13 +196,13 @@ def find_r(rects):
 
 def doReset():
     # 初始化
-    global state,state_Trace,position,INpause
+    global state,state_Trace,position,INpause,iterator
     img, red_point, black_rect = findtwo()
 
     # 找到黑色矩形和红点
     # 在图像上绘制矩形及中心点
     # initial stare
-
+    iterator = 1
     state = MachineState.RESET
     ## state of Travel rect
     state_Trace = TraceState.RESET
